@@ -1,0 +1,29 @@
+#!/bin/sh
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright © 2010-2018 ANSSI. All Rights Reserved.
+
+#########################################################
+# clip-postinst-netconst
+# CLIP post-installation internal adresses configuration.
+# Copyright (C) 2010 ANSSI
+# Author: Vincent Strubel <clipos@ssi.gouv.fr>
+# All rights reserved.
+##########################################################
+
+source /opt/clip-installer/clip-disk-common || exit 1
+
+cleanup() {
+	# Needed since we probably run as root - any file
+	# we create will be owned by root
+	chown 4000:4000 "${ROOT}/etc/admin/conf.d/net"
+	cleanup_fs
+}
+
+check_mounted || exit 1
+
+JAILS_MIN="$(echo "${CLIP_JAILS}" | sed -e 's/rm_/-/g')"
+
+clip-config -N ${JAILS_MIN} -c /clip1/etc/admin/conf.d/net \
+	|| error "Le lancement de clip-config a échoué."
+cleanup
+exit 0

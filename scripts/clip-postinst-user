@@ -1,0 +1,31 @@
+#!/bin/sh
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright © 2010-2018 ANSSI. All Rights Reserved.
+
+#########################################################
+# clip-postinst-user
+# CLIP post-installation users configuration.
+# Copyright (C) 2010 ANSSI
+# Author: Vincent Strubel <clipos@ssi.gouv.fr>
+# All rights reserved.
+##########################################################
+
+source /opt/clip-installer/clip-disk-common || exit 1
+
+cleanup() {
+	chroot /clip1	killall userd
+	rm -f "/clip1/var/run/userd" "/clip1/var/run/userd-client"
+	cleanup_fs
+}
+
+check_mounted || exit 1
+
+JAILS_MIN="$(echo "${CLIP_JAILS}" | sed -e 's/rm_/-/g')"
+JAILS_MAX="$(echo "${CLIP_JAILS}" | tr [a-z] [A-Z] | sed -e 's/RM_/-/g')"
+
+chroot /clip1 /usr/sbin/userd ${JAILS_MAX} -m /usr/lib/opensc-pkcs11.so -s admin:/var/run/userd -s user:/var/run/userd-user -r\
+	|| error "Le lancement de userd a échoué."
+clip-config ${JAILS_MIN} -u -s /clip1/var/run/userd \
+	|| error "Le lancement de clip-config a échoué."
+cleanup
+exit 0

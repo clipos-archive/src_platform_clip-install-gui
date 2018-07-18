@@ -1,0 +1,34 @@
+#!/bin/sh
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright © 2010-2018 ANSSI. All Rights Reserved.
+
+#########################################################
+# clip-list-install-disks
+# Extract a list of possible install disks
+# for clip-install-gui.
+# Copyright (C) 2010-2012 ANSSI
+# Authors:
+#   Vincent Strubel <clipos@ssi.gouv.fr>
+#   Mickaël Salaün <clipos@ssi.gouv.fr>
+# All rights reserved.
+##########################################################
+
+RAID_DISK=""
+[[ "$1" = "-r" ]] && RAID_DISK="/dev/md1"
+
+ROOTDISK="$(mount | awk '$3 == "/mnt/cdrom" {print $1}')"
+ROOTDISK="${ROOTDISK%?}"
+
+for d in ${RAID_DISK} /dev/sd? /dev/hd? /dev/vd?; do
+	[[ "${d}" == "${ROOTDISK}" ]] && continue
+	[[ -b "${d}" ]] || continue
+	SIZE="$(blockdev --getsize "${d}" 2>/dev/null)"
+	[[ $? -ne 0 ]] && continue
+	[[ "${SIZE}" == "0" ]] && continue
+	if [[ "${d}" == "/dev/md1" ]]; then
+		echo "/dev/md"
+		break
+	else
+		echo "${d}"
+	fi
+done

@@ -1,0 +1,115 @@
+################# configure part ##############################
+CC = @CC@
+CXX = @CXX@
+MOC = moc
+srcdir = @srcdir@
+SHELL = @SHELL@
+PREFIX = @prefix@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+
+netconfd_path = @netconfd_path@
+netconf_link = @netconf_link@
+netd_socket = @netd_socket@
+default_profilename = @default_profilename@
+haswifi_flag = @haswifi_flag@
+userd_socket = @userd_socket@
+with_rm = @with_rm@
+
+CFLAGS = @CFLAGS@
+CXXFLAGS = @CXXFLAGS@ 
+LDFLAGS = @LDFLAGS@ @QT4_GUI_LIBS@ -lQtSolutions_SingleApplication-2.6 -lClipWidgets
+
+IFLAGS = -I. @QT4_GUI_CFLAGS@ -I /usr/include/clip -I/usr/include/qt4/QtSolutions -DPREFIX=\"${PREFIX}\"
+
+INSTALLGUI := clip-install-gui
+INSTALLGUI_MOC = \
+		frmPassword.moc.cpp \
+		frmInstMain.moc.cpp \
+
+INSTALLGUI_SRC = \
+		install-gui.cpp		\
+		$(INSTALLGUI_MOC)	\
+		frmPassword.cpp 	\
+		frmInstMain.cpp		\
+
+EXES := ${INSTALLGUI} 
+
+
+.PHONY: all build install uninstall clean mrproper
+
+all: build
+
+###############################################################
+ifndef VERBOSE
+MAKEFLAGS += -s --no-print-directory
+ECHO = echo
+else 
+ECHO = echo > /dev/null
+endif
+
+OBJS_DIR ?= obj
+INSTALLGUI_OBJFILES := ${foreach file, ${patsubst %.cpp,%.o,${INSTALLGUI_SRC}}, ${OBJS_DIR}/${file}}
+
+DEPS_DIR = ${OBJS_DIR}/.deps
+INSTALLGUI_DEPFILES := ${foreach file, ${basename ${INSTALLGUI_SRC}}, ${DEPS_DIR}/${file}.d}
+
+OBJFILES := ${INSTALLGUI_OBJFILES} 
+DEPFILES := ${INSTALLGUI_DEPFILES}
+MOCFILES := ${INSTALLGUI_MOC} 
+
+###############################################################
+
+${OBJS_DIR}:
+	mkdir -p ${OBJS_DIR}
+
+${DEPS_DIR}:
+	mkdir -p ${DEPS_DIR}
+
+
+${OBJS_DIR}/%.o:%.c Makefile
+	@${ECHO} "        CC        $<"
+	$(CC) $(CFLAGS) $(IFLAGS) -MT $@ -MD -MP -MF ${DEPS_DIR}/$*.d -c -o $@ $<
+
+${OBJS_DIR}/%.o:%.cpp Makefile
+	@${ECHO} "        CXX      $<"
+	$(CXX) $(CXXFLAGS) $(IFLAGS) -MT $@ -MD -MP -MF ${DEPS_DIR}/$*.d -c -o $@ $<
+
+%.moc.cpp: %.h Makefile
+	@${ECHO} "        MOC      $<"
+	$(MOC) -o $@ $<
+
+
+${INSTALLGUI}: ${INSTALLGUI_OBJFILES}
+	@${ECHO} "        LD       $@"
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) 
+
+build: ${OBJS_DIR} ${DEPS_DIR} ${MOCFILES} ${EXES}
+
+install: build
+	list='$(EXES)'; for exe in $$list; do \
+		${ECHO} "        INST              ${DESTDIR}${bindir}/$$exe" ;\
+		install -D $$exe ${DESTDIR}${bindir}/$$exe ;\
+	done
+
+uninstall: 
+	list='$(EXES)'; for exe in $$list; do \
+		${ECHO} "        RM                ${DESTDIR}${bindir}/$$exe" ;\
+		rm -f  ${DESTDIR}${bindir}/$$exe ;\
+	done
+
+clean:
+	@${ECHO} "        CLEAN             ${EXES} ${MOCFILES} ${OBJFILES}"
+	rm -f ${EXES} ${MOCFILES} ${OBJFILES} ${DEPFILES}
+
+mrproper: clean
+	rmdir ${DEPS_DIR} ${OBJS_DIR}
+	rm -f Makefile
+
+
+Makefile: Makefile.in ../config.status
+	cd .. && ./config.status && cd src
+
+
+-include ${DEPFILES}

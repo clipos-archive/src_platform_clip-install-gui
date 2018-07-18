@@ -1,0 +1,29 @@
+#!/bin/sh
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright © 2010-2018 ANSSI. All Rights Reserved.
+
+#########################################################
+# clip-postinst-download
+# CLIP post-installation download sources configuration.
+# Copyright (C) 2011 ANSSI
+# Author: Vincent Strubel <clipos@ssi.gouv.fr>
+# All rights reserved.
+##########################################################
+
+source /opt/clip-installer/clip-disk-common || exit 1
+
+cleanup() {
+	# Needed since we probably run as root - any file
+	# we create will be owned by root
+	chown 4000:4000 "${ROOT}/etc/admin/conf.d/devices"
+	cleanup_fs
+}
+
+check_mounted || exit 1
+
+JAILS_MIN="$(echo "${CLIP_JAILS}" | sed -e 's/rm_/-/g')"
+
+clip-config ${JAILS_MIN} -D -c "${ROOT}/etc/admin/conf.d/devices" \
+	|| error "Le lancement de clip-config  a échoué."
+cleanup
+exit 0

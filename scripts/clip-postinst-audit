@@ -1,0 +1,32 @@
+#!/bin/sh
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# Copyright © 2010-2018 ANSSI. All Rights Reserved.
+
+#########################################################
+# clip-postinst-audit
+# CLIP post-installation audit configuration.
+# Copyright (C) 2010 ANSSI
+# Author: Vincent Strubel <clipos@ssi.gouv.fr>
+# All rights reserved.
+##########################################################
+
+source /opt/clip-installer/clip-disk-common || exit 1
+
+cleanup() {
+	# Needed since we probably run as root - any file
+	# we create will be owned by root
+	chown 5000:5000 -R "${ROOT}/etc/audit/"
+	cleanup_fs
+}
+
+check_mounted || exit 1
+
+JAILS_MIN="$(echo "${CLIP_JAILS}" | sed -e 's/rm_/-/g')"
+
+mkdir -p "/etc/audit"
+mount --bind "${ROOT}/etc/audit" "/etc/audit"
+clip-audit-config ${JAILS_MIN} \
+	|| error "Le lancement de clip-config  a échoué."
+umount "/etc/audit"
+cleanup
+exit 0
